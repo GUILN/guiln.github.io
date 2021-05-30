@@ -26,7 +26,7 @@ module.exports = {
     bio: 'Software Developer.',
     contacts: {
       email: 'guilherme.l.nunes@gmail.com',
-      github: '#',
+      github: 'GUILN',
       linkedin: '#',
       medium: '',
     }
