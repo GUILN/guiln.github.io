@@ -27,7 +27,7 @@ workbox.core.clientsClaim();
  */
 self.__precacheManifest = [
   {
-    "url": "webpack-runtime-67000f423d52e94d2097.js"
+    "url": "webpack-runtime-ff2511acb1132820ddc1.js"
   },
   {
     "url": "styles.08b6f1b92a40a3f4c705.css"
@@ -45,11 +45,11 @@ self.__precacheManifest = [
     "url": "dc6a8720040df98778fe970bf6c000a41750d3ae-76dc177fd16284b137ef.js"
   },
   {
-    "url": "app-3d1fcfce981532022021.js"
+    "url": "app-c28f82b03b8234c36686.js"
   },
   {
     "url": "offline-plugin-app-shell-fallback/index.html",
-    "revision": "62378869c3bbd18908ca3bd569558c33"
+    "revision": "0054648894559baa1a9527290ffa27a6"
   },
   {
     "url": "component---cache-caches-gatsby-plugin-offline-app-shell-js-fd4fb51a6fac1c18bdde.js"
@@ -60,7 +60,7 @@ self.__precacheManifest = [
   },
   {
     "url": "page-data/app-data.json",
-    "revision": "4cddefe6aedf7f37c4a89bb430075aae"
+    "revision": "3d76a82858de906e7578c615348a70c8"
   },
   {
     "url": "polyfill-8de6de3a6555a9e76093.js"
@@ -71,7 +71,7 @@ self.__precacheManifest = [
   },
   {
     "url": "manifest.webmanifest",
-    "revision": "5563432917e9bc4cf94894abcc80e379"
+    "revision": "08e96988eefe8f769709ced22ea346d1"
   }
 ].concat(self.__precacheManifest || []);
 workbox.precaching.precacheAndRoute(self.__precacheManifest, {});
@@ -158,12 +158,12 @@ const navigationRoute = new NavigationRoute(async ({ event }) => {
   lastNavigationRequest = event.request.url
 
   let { pathname } = new URL(event.request.url)
-  pathname = pathname.replace(new RegExp(`^/tree/gh-pages`), ``)
+  pathname = pathname.replace(new RegExp(`^/guil.githun.io/tree/gh-pages`), ``)
 
   // Check for resources + the app bundle
   // The latter may not exist if the SW is updating to a new version
   const resources = await idbKeyval.get(`resources:${pathname}`)
-  if (!resources || !(await caches.match(`/tree/gh-pages/app-3d1fcfce981532022021.js`))) {
+  if (!resources || !(await caches.match(`/guil.githun.io/tree/gh-pages/app-c28f82b03b8234c36686.js`))) {
     return await fetch(event.request)
   }
 
@@ -176,7 +176,7 @@ const navigationRoute = new NavigationRoute(async ({ event }) => {
     }
   }
 
-  const offlineShell = `/tree/gh-pages/offline-plugin-app-shell-fallback/index.html`
+  const offlineShell = `/guil.githun.io/tree/gh-pages/offline-plugin-app-shell-fallback/index.html`
   const offlineShellWithKey = workbox.precaching.getCacheKeyForURL(offlineShell)
   return await caches.match(offlineShellWithKey)
 })
