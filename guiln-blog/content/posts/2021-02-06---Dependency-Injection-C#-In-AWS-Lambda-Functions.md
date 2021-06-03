@@ -11,7 +11,6 @@ tags:
   - "Serverless"
   - "C#"
 description: "An approach on how to work with dotnet's DI in AWS Lambda environment."
-socialImage: "/media/42-line-bible.jpg"
 ---
 
 - [The Context](#the-context)
