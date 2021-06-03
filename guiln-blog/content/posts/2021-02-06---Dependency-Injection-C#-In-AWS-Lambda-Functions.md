@@ -7,91 +7,185 @@ slug: "c-sharp-dependency-injection-in-aws-lambda-functions"
 category: "C#"
 tags:
   - "AWS"
-  - "Lamnda"
+  - "Lambda"
+  - "Serverless"
   - "C#"
 description: "An approach on how to work with dotnet's DI in AWS Lambda environment."
 socialImage: "/media/42-line-bible.jpg"
 ---
 
 - [The Context](#the-context)
-- [Dependency Injection Principle](#dependency-injection-principle)
-- [An alternative to DI Approach](#an-alternative-to-di-approach)
+- [Dependency Inversion Principle](#dependency-inversion-principle)
+- [Writing Some Code](#writing-some-code)
 - [Conclusion](#conclusion)
 
 An Intro about Dependency injection in Lambda environment
 
 ## The Context
 
-When working with .Net core AWS lambda functions, we do not have some fancy `IOC containers` that are able to wire the dependencies in runtime.
+When working with .Net core AWS lambda functions, we do not have some fancy `IoC containers` that are able to wire the dependencies in runtime.
 If we were working in a "classic" .Net core  project we would have some options of IOC containers, although one largely used in great part of the .Net core projects is the built in IServiceCollection interfaces (IServiceCollection will be used here to refer to .Net core out of the box DI mechanism).
 As we are not in a full .Net core environment we do not have access to .Net runtime "injectors", and as we are working with AWS lambdas we do not have a way to hook the DI in runtime (at least not at the time that we write this document).
 This context leaves us with some options of non standard way of injecting dependency, and so it leaves this decision to be made.
 
-The first printed books were, at first, perceived as inferior to the handwritten ones. They were smaller and cheaper to produce. Movable type provided the printers with flexibility that allowed them to print books in languages other than Latin. Gill describes the transition to industrialism as something that people needed and wanted. Something similar happened after the first printed books emerged. People wanted books in a language they understood and they wanted books they could take with them. They were hungry for knowledge and printed books satisfied this hunger.
+## Dependency Inversion Principle
 
+As previously discussed we won't have option to use dotnet core's `IoC Container`, although is not complicated to keep our `D`from our famous `SOLID`, at the end of the day we only want to make sure that we can inject the dependencies and keep our lambda as flexible through different environments and as testable as it would be when working in a "pure" dotnet core environment. 
+One word: `KISS` - Keep it simple, or in the words of *Gary McLean Hall* in book *Adaptative Code Via C#*: "When something is so simple, yet so important, people tend to overcomplicate it. DI is no exception...".
 
-
-*The 42–Line Bible, printed by Gutenberg.*
-
-But, through this transition, the book lost a large part of its humanity. The machine took over most of the process but craftsmanship was still a part of it. The typefaces were cut manually by the first punch cutters. The paper was made by hand. The illustrations and ornaments were still being hand drawn. These were the remains of the craftsmanship that went almost extinct in the times of Eric Gill.
-
-## Dependency Injection Principle
-
-Short description on Dependency Injection main goals
-
-> In the new computer age the proliferation of typefaces and type manipulations represents a new level of visual pollution threatening our culture. Out of thousands of typefaces, all we need are a few basic ones, and trash the rest.
+> When something is so simple, yet so important, people tend to overcomplicate it. DI is no exception...
 >
-— Massimo Vignelli
+— Gary McLean Hall, Adaptative Code Via C#
 
-Typography is not about typefaces. It’s not about what looks best, it’s about what feels right. What communicates the message best. Typography, in its essence, is about the message. “Typographical design should perform optically what the speaker creates through voice and gesture of his thoughts.”, as El Lissitzky, a famous Russian typographer, put it.
+`Poor Man's` DI is the `KISS` of this principle, for given situation. So let's write some code focusing in:
+- Keeping the DI
+- Avoiding DI anti patterns (`Service Locator`)
+- Making it configurable through environments
+- Making it testable!
+- Keeping it simple
 
-## An alternative to DI Approach
 
-AWS Lambda dependecy injection for dotnet core goes here (code and stuff)
+## Writing Some Code
 
-####Example
-
-Config Interface
+Let's start with `IConfigurationService` interface.
 ```csharp
-public interface IConfiguration
+public interface IConfigurationService
 {
-    public ICommonRapidConnectConfig CommonRapidConnectConfig { get; }
-    public IPciProxyConfig PciProxyConfig { get; }
+     IConfiguration GetConfiguration();
 }
 ```
 
-JS Test
-```javascript
-const my_const = "this is my const";
+Let's say we have two environments `Dev` and `local`:
 
-const my_method = (some_var) => {
-  console.log(`This is my var ${some_var}`);
-};
+```csharp
+//Dev
+public class DevConfigurationService : IConfigurationService
+{
+    public IConfiguration GetConfiguration() => new ConfigurationBuilder()
+            .AddSystemsManager("/application-config/order-info-config/")
+            .Build();
+}
+//Local
+public class LocalConfigurationService : IConfigurationService
+{
+    public IConfiguration GetConfiguration() => new ConfigurationBuilder()
+            .AddSystemsManager("/application-config/order-info-config/")
+            .Build();
+}
 ```
 
-Python Test
-```python 
-def do_something(some_var: str):
-  print(f'This is my var: {some_var}')
+`IEnvironmentServiceConfiguration` will be the interface to be implemented for every environment in order to register services in IoC container, opted to make the environment selection through a static `Factory Method` in the interface:
 
-def main():
-  my_var = "this is a var"
-  do_something(my_var)
+```csharp
+public interface IEnvironmentServiceConfiguration
+{
+   public static IEnvironmentServiceConfiguration CreateServiceConfiguration(string environmentName)
+   {
+           return environmentName switch
+           {
+               "dev" => new DevServiceConfiguration(),
+               "local" => new LocalServiceConfiguration(),
+               _ => new LocalServiceConfiguration()
+           };
+   }
+       
+   void ConfigureServices(IServiceCollection serviceCollection);
+}
 ```
 
+Wire `Dev` and `Local` configuration in IOC container, registering the `IConfigurationService` per environment.
 
-Typefaces don’t look handmade these days. And that’s all right. They don’t have to. Industrialism took that away from them and we’re fine with it. We’ve traded that part of humanity for a process that produces more books that are easier to read. That can’t be bad. And it isn’t.
+```csharp
+//Dev
+public class DevServiceConfiguration : IEnvironmentServiceConfiguration
+{
+    public void ConfigureServices(IServiceCollection serviceCollection)
+    {
+        serviceCollection.AddSingleton<IConfigurationService, DevConfigurationService>();
+    }
+}
+//Local
+public class LocalServiceConfiguration : IEnvironmentServiceConfiguration
+{
+    public void ConfigureServices(IServiceCollection serviceCollection)
+    {
+        serviceCollection.AddSingleton<IConfigurationService, LocalConfigurationService>();
+    }
+}
+```
 
-> Humane typography will often be comparatively rough and even uncouth; but while a certain uncouthness does not seriously matter in humane works, uncouthness has no excuse whatever in the productions of the machine.
+Singleton class to wire the environment instantiation logic. Note that in that case we are assuming that expected `"local"` and `"dev"` values will come from `ENVIRONMENT` environment variable. This will allow us to configure different `ServiceCollections` among the different environments.
+
+
+```csharp
+public class Bootstrapper
+{
+        public IServiceProvider ServiceProvider => _serviceCollection.BuildServiceProvider();
+        
+        private static IServiceCollection _serviceCollection;
+        private static Bootstrapper _instance;
+
+        private Bootstrapper()
+        {
+            ConfigureServices();
+        }
+
+        private void ConfigureServices()
+        {
+            _serviceCollection = new ServiceCollection();
+            var environment = Environment.GetEnvironmentVariable("ENVIRONMENT") ??
+                              throw new ApplicationException("'ENVIRONMENT' must be set");
+            var environmentServiceConfiguration =
+                IEnvironmentServiceConfiguration.CreateServiceConfiguration(environment);
+            
+            environmentServiceConfiguration.ConfigureServices(_serviceCollection);
+        }
+
+        public static Bootstrapper GetInstance()
+        {
+            if (_instance == null)
+                _instance = new Bootstrapper();
+            return _instance;
+        }
+}
+```
+
+At this point is important to say that, you and your team could easily fall in the temptation of practicing the `Service Locator` anti pattern, this assumption is specially true when using an "home made" IoC container resolver because it simply don't feel weird to use your own piece of code to resolve dependencies at any part of your project as it does when dealing with third party IoC container (even if is the one that ships with dotnet core). 
+Be aware! If you fall in temptation to use `Service Locator` your project will quickly be with "magic" dependecies that will get hard to debug, and hard to tell what does a method / class needs to work just by looking at it usage. So keep the DI spirit downstream your classes / methods!
+A good metric that I use to avoid this anti pattern is:
+
+> Whenever I see the usage of a method / class, I should be able to tell all the dependencies by simply looking at method / object's constructor parameters. If I'm not able to do that, some magic stuff is going inside that class. You now have "skyhooks" instead of cranes in your code base.
 >
-> — Eric Gill
+— Jus me quoting myself
 
-We’ve come close to “perfection” in the last five centuries. The letters are crisp and without rough edges. We print our compositions with high–precision printers on a high quality, machine made paper.
+The usage in code should be simple, as we assume that DI should always be done in the entry point of our program, the entry point for a lambda function will be it constructor.
+
+```csharp
+public class Function
+{
+        private readonly IConfiguration _configurationService;
+
+        public Function() 
+          : this(Bootstrapper.GetInstance()
+                            .ServiceProvider
+                            .GetService<IConfigurationService>()
+                            .GetConfiguration()) {}
+
+        public Function(IConfiguration configurationService) => 
+                      (_configurationService) = (configurationService);
 
 
-*Type through 5 centuries.*
+        public async Task<APIGatewayProxyResponse> FunctionHandler(APIGatewayProxyRequest apigProxyEvent,
+            ILambdaContext context)
+        {
+            Console.WriteLine($"Configured value: {_configurationService["configured-variable-per-environment"]}");
+            ....
+        }
+}
+```
 
-We lost a part of ourselves because of this chase after perfection. We forgot about the craftsmanship along the way. And the worst part is that we don’t care. The transition to the digital age made that clear. We choose typefaces like clueless zombies. There’s no meaning in our work. Type sizes, leading, margins… It’s all just a few clicks or lines of code. The message isn’t important anymore. There’s no more “why” behind the “what”.
+The idea of having 2 constructors for the lambda is that the parameterless one will be called by lambda mechanism itself when you, for example, call `sam local invoke` locally, or when you run your lambda in your `AWS` environment. The contructor that receives `IConfiguration` parameter will be used for testing purposes, so we can easily mock `IConfigurationService` dependency in our automated tests. 
+
 
 ## Conclusion
 
