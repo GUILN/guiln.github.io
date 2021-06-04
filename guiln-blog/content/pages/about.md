@@ -9,5 +9,3 @@ socialImage: "/media/image-2.jpg"
 - Design.
 - Good Practices.
 - Agile.
-
-Nothing more than ideas, experiments, and experiences. About software - Development, design and architecture.
