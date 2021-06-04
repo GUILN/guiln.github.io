@@ -3,7 +3,7 @@
 module.exports = {
   url: 'https://lumen.netlify.com',
   pathPrefix: '',
-  title: 'Blog Guiln',
+  title: 'Blog Guilherme',
   subtitle: 'Software Blog',
   copyright: '© All rights reserved.',
   disqusShortname: '',
@@ -21,7 +21,7 @@ module.exports = {
     }
   ],
   author: {
-    name: 'Guiln',
+    name: 'Guilherme Nunes',
     photo: '/photo.jpg',
     bio: 'Software Developer.',
     contacts: {
