@@ -18,16 +18,15 @@ description: "An approach on how to work with dotnet core DI in AWS Lambda envir
 - [Writing Some Code](#writing-some-code)
 - [Conclusion](#conclusion)
 
-An Intro about Dependency injection in Lambda environment
 
 ## Context
 
-When working with .Net core AWS lambda functions, we do not have some fancy hooks that ables us to wire the dependencies in runtime.
-This situation leaves us by ourselves to add the necessary code that overcomes this situation.
+When working with .Net core AWS lambda functions, we do not have some fancy hooks that enables us to wire the dependencies in runtime.
+This fact leaves us by ourselves to add the necessary code that overcomes this situation.
 
 ## Dependency Inversion Principle
 
-Despite the fact we won't have option to use dotnet core's `IoC Container` in it entire functionality, is not complicated to keep the dependency inversion or injection principle, at the end of the day the most important to keep from this principle is to make sure that we can inject the dependencies and keep our lambda as flexible through different environments and as testable as it would be when working in a "pure" dotnet core environment.
+Despite the fact we won't have option to use dotnet core's `IoC Container` in it entire functionality, is not complicated to keep the dependency inversion or injection principle, at the end of the day the most important to maintain this principle is to make sure that we can inject the dependencies and keep our lambda as flexible through different environments and as testable as it would be when working in a "pure" dotnet core environment.
 So, with that in mind we will go through a simple, yet efficient approach. Which reminds me the words of *Gary McLean Hall* in book *Adaptive Code Via C#: Agile coding with design patterns and SOLID principles*: 
 > When something is so simple, yet so important, people tend to overcomplicate it. DI is no exception...
 >
@@ -35,10 +34,9 @@ So, with that in mind we will go through a simple, yet efficient approach. Which
 
 So, I'll present in next few lines the most fancy `Poor Man's` DI that I've ever written. Let's write, and discuss some code focusing in:
 - Keeping the DI (Most important)
-- Avoiding DI anti patterns (`Service Locator`)
+- Avoiding DI anti-patterns (`Service Locator`)
 - Making it configurable through environments
 - Making it testable!
-- Keeping it simple
 
 ## Writing Some Code
 
@@ -88,7 +86,7 @@ public interface IEnvironmentServiceConfiguration
 }
 ```
 
-Following, the implementation of the interface above for both `Dev` and `Local` environments.
+Following, the implementation of the interface above for both `Dev` and `Local` environments. Here is where we wire our implementations to interfaces or abstract classes. 
 
 ```csharp
 //Dev
@@ -109,7 +107,7 @@ public class LocalServiceConfiguration : IEnvironmentServiceConfiguration
 }
 ```
 
-To glue all the DI logic and make it automatically change for each environment, we add a singleton class `Bootstrapper` to wire the environment instantiation logic. Note that in that case we are assuming that expected `"local"` and `"dev"` values will come from `ENVIRONMENT` environment variable. This will allow us to configure different `ServiceCollections` among the different environments. We are also using previously declared factory method to instantiate the implementation of `IEnvironmentServiceConfiguration`, which will be used to configure our service collection.
+To glue all the DI logic and make it automatically change for each environment, we add a singleton class `Bootstrapper` to wire the environment instantiation logic. In our case we are assuming that expected `"local"` and `"dev"` values will come from `ENVIRONMENT` environment variable. This will allow us to configure different `ServiceCollections` among the different environments. We are also using previously declared factory method to instantiate the implementation of `IEnvironmentServiceConfiguration`, which will be used to configure our service collection.
 
 
 ```csharp
@@ -145,15 +143,15 @@ public class Bootstrapper
 }
 ```
 
-At this point is important to say that, you and your team could easily fall in the temptation of practicing the `Service Locator` anti pattern, this assumption is specially true when using an "home made" IoC container "resolver" because it simply does not feels weird to use your own piece of code to resolve dependencies at any part of your project as it does when dealing with third party IoC container.  
-If you fall in this temptation your project will quickly be with "magic" dependencies that will get hard to debug, and hard to tell what does a method / class needs to work just by looking at it usage. So keep the DI spirit downstream your classes / methods!
+At this point is important to say that, you and your team could easily fall in the temptation of practicing the `Service Locator` anti-pattern, this assumption is specially true when using an "home made" IoC container "resolver" because it simply does not feels weird to use your own piece of code to resolve dependencies at any part of your project as it does when dealing with third party IoC container.  
+If you fall in this temptation your project will quickly get on "magic" dependencies that will make it hard to debug, and impossible to tell which dependencies a method / class needs to work just by looking at it usage. So keep the DI spirit downstream for your classes / methods!
 A good metric that I use to avoid this anti pattern is:
 
-> Whenever I see the usage of a method / class, I should be able to tell all the dependencies by simply looking at method / object's constructor parameters. If I'm not able to do that, some magic stuff is going inside that class. You now have "skyhooks" instead of cranes in your code base.
+> Whenever I see the usage of a method, I should be able to tell all the dependencies by simply looking at method signature and at it object's constructor signature. If I'm not able to do that, some magic is going inside that class.
 >
-— Just me quoting myself
 
-The usage in code should be simple, as we assume that DI should always be done in the entry point of our program, the entry point for a lambda function will be the constructor of the `Function` class.
+
+The usage in code should be simple, as we assume that DI should always be done at the entry point of our program, the entry point for a lambda function will be the constructor of the `Function` class.
 
 ```csharp
 public class Function
@@ -179,11 +177,11 @@ public class Function
 }
 ```
 
-The idea of having two constructors for the lambda is that the parameterless one will be called by lambda mechanism itself when you, for example, call `sam local invoke` locally, or when you run your lambda in your `AWS` environment. The constructor that receives `IConfiguration` parameter will be used for testing purposes, so we can easily mock `IConfigurationService` dependency for automated tests. 
+The idea of having two constructors for lambda's `Function` class is that the parameterless one will be called by lambda mechanism itself when you, for example, call `sam local invoke` locally, or when you run your lambda in your `AWS` environment. The constructor that receives `IConfiguration` parameter will be used for testing purposes, so we can easily mock `IConfigurationService` dependency for automated tests. 
 
 
 ## Conclusion
 
-This approach keeps DI in lambda with the simplicity of using the `IServiceProvider` and `IServiceCollection` from [Microsoft.Extensions.DependencyInjection][Extensions.DependencyInjection-url] package to register our dependencies. It also overcomes the lack of a mechanism to wire dependencies between different environments that lambda environments leaves us with.
+This approach keeps DI in lambda with the simplicity of using the `IServiceProvider` and `IServiceCollection` from [Microsoft.Extensions.DependencyInjection][Extensions.DependencyInjection-url] package to register your project's dependencies. And also overcomes the lack of a mechanism to wire dependencies between different environments that dotnet core's lambda leaves us with.
 
 [Extensions.DependencyInjection-url]: https://www.nuget.org/packages/Microsoft.Extensions.DependencyInjection/
